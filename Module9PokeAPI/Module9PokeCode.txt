@@ -1,0 +1,98 @@
+Link to the program: https://www.jdoodle.com/ia/1tCw
+Code within the program: 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Scanner;
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
+
+public class Main {
+    private static final Gson gson = new Gson();
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("WARNING! Some pokemon heights and weights may not be 
+correct. This is due to an error within the source for the data on the Pokemon" +
+                "\nHow would you like to find the pokemon: \n1. Name\n2. Pokedex Number:");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume the newline character
+        String url = "";
+
+        if (choice == 1){
+            System.out.println("Enter a Pokemon name:");
+            String name = scanner.nextLine().toLowerCase();
+            url = String.format("https://pokeapi.co/api/v2/pokemon/%s", name);
+        }
+        else if (choice == 2){
+            System.out.println("Enter a Pokedex number:");
+            int id = scanner.nextInt();
+            url = String.format("https://pokeapi.co/api/v2/pokemon/%d", id);
+        }
+
+        try {
+            System.out.println("Fetching URL: " + url); // Debug print
+            Pokemon pokemon = fetchPokemon(url);
+            if (pokemon != null) {
+                displayPokemonInfo(pokemon);
+            }
+        } catch (Exception e) {
+            System.out.println("\nException Caught!");
+            System.out.println("Message: " + e.getMessage());
+        }
+    }
+
+    private static Pokemon fetchPokemon(String urlString) throws Exception {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI(urlString))
+                .GET()
+                .build();
+        
+        HttpResponse<String> response = client.send(request, 
+HttpResponse.BodyHandlers.ofString());
+        String responseBody = response.body();
+
+        if (responseBody == null || responseBody.isEmpty()) {
+            String resp = "No response received from PokeAPI.";
+            return null;
+        }
+
+        return gson.fromJson(responseBody, Pokemon.class);
+    }
+
+    private static void displayPokemonInfo(Pokemon pokemon) {
+        System.out.println("PokeDex Number: " + pokemon.id);
+        System.out.println("Name: " + pokemon.name);
+        System.out.println("Height: " + Math.round((pokemon.height * 3.93700787) / 12) + " ft " 
++ Math.round(pokemon.height * 3.93700787) % 12 + " in");
+        System.out.println("Weight: " + Math.round(pokemon.weight * .220462 * 10.0) / 10.0 + " 
+lbs");
+
+        // Convert TypeSlot array to type name array for joining
+        String[] typeNames = new String[pokemon.types.length];
+        for (int i = 0; i < pokemon.types.length; i++) {
+            typeNames[i] = pokemon.types[i].typeInfo.name;
+        }
+        System.out.println("Types: " + String.join("/", typeNames));
+    }
+}
+
+class Pokemon {
+    public String name;
+    public double height;
+    public double weight;
+    public int id;
+    @SerializedName("types")
+    public TypeSlot[] types;
+}
+
+class TypeSlot {
+    @SerializedName("type")
+    public TypeInfo typeInfo;
+}
+
+class TypeInfo {
+    public String name;
+}
